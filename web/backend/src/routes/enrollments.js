@@ -17,6 +17,7 @@ router.get('/', async (req, res) => {
         s.student_name,
         e.course_code,
         c.title AS course_title,
+        e.marks,
         e.grade,
         DATE_FORMAT(e.enroll_date, '%Y-%m-%d') AS enroll_date
       FROM Enrollment e
@@ -95,6 +96,7 @@ router.get('/:id', async (req, res) => {
         s.student_name,
         e.course_code,
         c.title AS course_title,
+        e.marks,
         e.grade,
         DATE_FORMAT(e.enroll_date, '%Y-%m-%d') AS enroll_date
       FROM Enrollment e
@@ -129,7 +131,7 @@ router.get('/:id', async (req, res) => {
  * Creates a new enrollment record linking student and course
  */
 router.post('/', async (req, res) => {
-  const { enrollment_id, student_id, course_code, grade, enroll_date } = req.body;
+  const { enrollment_id, student_id, course_code, marks, grade, enroll_date } = req.body;
 
   const idNum = Number(enrollment_id);
   if (!Number.isInteger(idNum) || idNum <= 0) {
@@ -137,6 +139,19 @@ router.post('/', async (req, res) => {
       status: 'error',
       message: 'Enrollment ID is required and must be a positive integer.'
     });
+  }
+
+  // Validate marks: integer 0-100 or null/empty
+  let marksVal = null;
+  if (marks !== undefined && marks !== null && String(marks).trim() !== '') {
+    const parsedMarks = Number(marks);
+    if (!Number.isInteger(parsedMarks) || parsedMarks < 0 || parsedMarks > 100) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Marks must be an integer between 0 and 100, or left blank.'
+      });
+    }
+    marksVal = parsedMarks;
   }
 
   const studentNum = Number(student_id);
@@ -227,8 +242,8 @@ router.post('/', async (req, res) => {
 
     // 5. Insert Enrollment
     await pool.query(
-      'INSERT INTO Enrollment (enrollment_id, student_id, course_code, grade, enroll_date) VALUES (?, ?, ?, ?, ?)',
-      [idNum, studentNum, trimmedCode, trimmedGrade, dateVal]
+      'INSERT INTO Enrollment (enrollment_id, student_id, course_code, marks, grade, enroll_date) VALUES (?, ?, ?, ?, ?, ?)',
+      [idNum, studentNum, trimmedCode, marksVal, trimmedGrade, dateVal]
     );
 
     res.status(201).json({
@@ -240,6 +255,7 @@ router.post('/', async (req, res) => {
         student_name: studentRows[0].student_name,
         course_code: trimmedCode,
         course_title: courseRows[0].title,
+        marks: marksVal,
         grade: trimmedGrade,
         enroll_date: dateVal
       }
@@ -293,7 +309,7 @@ router.put('/:id', async (req, res) => {
     });
   }
 
-  const { student_id, course_code, grade, enroll_date } = req.body;
+  const { student_id, course_code, marks, grade, enroll_date } = req.body;
 
   const studentNum = Number(student_id);
   if (!Number.isInteger(studentNum) || studentNum <= 0) {
@@ -301,6 +317,19 @@ router.put('/:id', async (req, res) => {
       status: 'error',
       message: 'Student must be selected.'
     });
+  }
+
+  // Validate marks: integer 0-100 or null/empty
+  let marksVal = null;
+  if (marks !== undefined && marks !== null && String(marks).trim() !== '') {
+    const parsedMarks = Number(marks);
+    if (!Number.isInteger(parsedMarks) || parsedMarks < 0 || parsedMarks > 100) {
+      return res.status(400).json({
+        status: 'error',
+        message: 'Marks must be an integer between 0 and 100, or left blank.'
+      });
+    }
+    marksVal = parsedMarks;
   }
 
   if (!course_code || typeof course_code !== 'string' || !course_code.trim()) {
@@ -383,8 +412,8 @@ router.put('/:id', async (req, res) => {
 
     // 5. Update Enrollment
     await pool.query(
-      'UPDATE Enrollment SET student_id = ?, course_code = ?, grade = ?, enroll_date = ? WHERE enrollment_id = ?',
-      [studentNum, trimmedCode, trimmedGrade, dateVal, enrollmentId]
+      'UPDATE Enrollment SET student_id = ?, course_code = ?, marks = ?, grade = ?, enroll_date = ? WHERE enrollment_id = ?',
+      [studentNum, trimmedCode, marksVal, trimmedGrade, dateVal, enrollmentId]
     );
 
     res.status(200).json({
@@ -396,6 +425,7 @@ router.put('/:id', async (req, res) => {
         student_name: studentRows[0].student_name,
         course_code: trimmedCode,
         course_title: courseRows[0].title,
+        marks: marksVal,
         grade: trimmedGrade,
         enroll_date: dateVal
       }

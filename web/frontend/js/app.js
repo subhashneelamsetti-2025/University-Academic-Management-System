@@ -226,6 +226,7 @@ const enrollmentIdHint = document.getElementById('enrollmentIdHint');
 const inputEnrollmentId = document.getElementById('inputEnrollmentId');
 const selectEnrollmentStudent = document.getElementById('selectEnrollmentStudent');
 const selectEnrollmentCourse = document.getElementById('selectEnrollmentCourse');
+const inputEnrollmentMarks = document.getElementById('inputEnrollmentMarks');
 const inputEnrollmentGrade = document.getElementById('inputEnrollmentGrade');
 const inputEnrollmentDate = document.getElementById('inputEnrollmentDate');
 const closeEnrollmentModalBtn = document.getElementById('closeEnrollmentModalBtn');
@@ -1455,7 +1456,7 @@ async function loadEnrollmentsList() {
 
 function renderEnrollmentsTable(enrollments) {
   if (!enrollments || enrollments.length === 0) {
-    enrollmentsTableBody.innerHTML = `<tr><td colspan="6" class="text-center text-muted" style="padding: 3rem;"><div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📝</div><p style="font-size: 1rem; color: #fff; font-weight: 600;">No enrollments found</p></td></tr>`;
+    enrollmentsTableBody.innerHTML = `<tr><td colspan="7" class="text-center text-muted" style="padding: 3rem;"><div style="font-size: 2.2rem; margin-bottom: 0.5rem;">📝</div><p style="font-size: 1rem; color: #fff; font-weight: 600;">No enrollments found</p></td></tr>`;
     return;
   }
 
@@ -1467,6 +1468,9 @@ function renderEnrollmentsTable(enrollments) {
     else if (g.startsWith('C')) gradeBadgeClass = 'grade-c';
 
     const gradeLabel = e.grade ? e.grade : 'In Progress';
+    const marksDisplay = (e.marks !== null && e.marks !== undefined)
+      ? `<span class="marks-badge">${e.marks}</span>`
+      : `<span class="marks-none">—</span>`;
 
     return `
       <tr>
@@ -1479,6 +1483,7 @@ function renderEnrollmentsTable(enrollments) {
           <span class="course-code-badge">${escapeHtml(e.course_code)}</span>
           <div style="font-size: 0.8rem; color: #94a3b8; margin-top: 3px;">${escapeHtml(e.course_title || '')}</div>
         </td>
+        <td>${marksDisplay}</td>
         <td><span class="grade-badge ${gradeBadgeClass}">${escapeHtml(gradeLabel)}</span></td>
         <td style="color: #cbd5e1; font-size: 0.84rem;">${escapeHtml(e.enroll_date || 'N/A')}</td>
         <td style="text-align: right;">
@@ -1507,6 +1512,7 @@ function openAddEnrollmentModal() {
 
   inputEnrollmentId.disabled = false;
   inputEnrollmentId.value = '';
+  if (inputEnrollmentMarks) inputEnrollmentMarks.value = '';
   inputEnrollmentDate.value = new Date().toISOString().split('T')[0];
   saveEnrollmentBtn.querySelector('.btn-text').textContent = 'Confirm Enrollment';
 
@@ -1536,6 +1542,7 @@ function handleOpenEditEnrollment(enrollmentId) {
   populateAllDropdowns();
   selectEnrollmentStudent.value = e.student_id;
   selectEnrollmentCourse.value = e.course_code;
+  if (inputEnrollmentMarks) inputEnrollmentMarks.value = (e.marks !== null && e.marks !== undefined) ? e.marks : '';
   inputEnrollmentGrade.value = e.grade || '';
   inputEnrollmentDate.value = e.enroll_date || new Date().toISOString().split('T')[0];
 
@@ -1550,8 +1557,21 @@ enrollmentForm?.addEventListener('submit', async (e) => {
 
   const studentId = Number(selectEnrollmentStudent.value);
   const courseCode = selectEnrollmentCourse.value;
+  const marksInput = inputEnrollmentMarks ? inputEnrollmentMarks.value.trim() : '';
   const grade = inputEnrollmentGrade.value.trim().toUpperCase() || null;
   const enrollDate = inputEnrollmentDate.value;
+
+  // Validate marks if provided: must be integer 0–100
+  let marksVal = null;
+  if (marksInput !== '') {
+    const parsedMarks = Number(marksInput);
+    if (isNaN(parsedMarks) || !Number.isInteger(parsedMarks) || parsedMarks < 0 || parsedMarks > 100) {
+      showModalAlert(enrollmentModalAlert, 'Marks must be an integer between 0 and 100 (or left blank).');
+      if (inputEnrollmentMarks) inputEnrollmentMarks.focus();
+      return;
+    }
+    marksVal = parsedMarks;
+  }
 
   if (!state.editingEnrollmentId) {
     const idVal = Number(inputEnrollmentId.value);
@@ -1587,6 +1607,7 @@ enrollmentForm?.addEventListener('submit', async (e) => {
   const payload = {
     student_id: studentId,
     course_code: courseCode,
+    marks: marksVal,
     grade,
     enroll_date: enrollDate
   };
@@ -1753,6 +1774,10 @@ const reportStatStaff = document.getElementById('reportStatStaff');
 const reportStatCourses = document.getElementById('reportStatCourses');
 const reportStatSections = document.getElementById('reportStatSections');
 const reportStatEnrollments = document.getElementById('reportStatEnrollments');
+const reportStatEvaluatedMarks = document.getElementById('reportStatEvaluatedMarks');
+const reportStatAvgMarks = document.getElementById('reportStatAvgMarks');
+const reportStatMinMarks = document.getElementById('reportStatMinMarks');
+const reportStatMaxMarks = document.getElementById('reportStatMaxMarks');
 
 const chartStudentsTotal = document.getElementById('chartStudentsTotal');
 const chartEnrollmentsTotal = document.getElementById('chartEnrollmentsTotal');
@@ -1817,6 +1842,9 @@ async function loadReportsOverview(forceRefresh = false) {
     renderReportEnrollmentsTable(data.enrollmentsByCourse || []);
     renderReportStaffTable(data.staffByDepartment || [], data.staffByRole || []);
     renderReportSectionsTable(data.sectionsRoster || []);
+
+    // 4. Render Marks Evaluation Statistics
+    renderMarksStatistics(data.marksStatistics || {});
 
     if (forceRefresh) {
       showToast('Live reports synchronized successfully!', 'success');
@@ -2085,6 +2113,27 @@ function renderReportSectionsTable(items) {
   `).join('');
 }
 
+// Marks Statistics Render
+function renderMarksStatistics(stats) {
+  const evaluatedCount = stats.evaluated_count ?? 0;
+  const avgMarks = stats.avg_marks !== null && stats.avg_marks !== undefined ? stats.avg_marks : null;
+  const minMarks = stats.min_marks !== null && stats.min_marks !== undefined ? stats.min_marks : null;
+  const maxMarks = stats.max_marks !== null && stats.max_marks !== undefined ? stats.max_marks : null;
+
+  if (reportStatEvaluatedMarks) {
+    reportStatEvaluatedMarks.textContent = evaluatedCount;
+  }
+  if (reportStatAvgMarks) {
+    reportStatAvgMarks.textContent = avgMarks !== null ? avgMarks : '—';
+  }
+  if (reportStatMinMarks) {
+    reportStatMinMarks.textContent = minMarks !== null ? minMarks : '—';
+  }
+  if (reportStatMaxMarks) {
+    reportStatMaxMarks.textContent = maxMarks !== null ? maxMarks : '—';
+  }
+}
+
 // Report Tab Filtering Logic
 function setupReportTabs() {
   const tabs = document.querySelectorAll('.report-tab-btn');
@@ -2092,6 +2141,7 @@ function setupReportTabs() {
     students: document.getElementById('reportBlockStudents'),
     courses: document.getElementById('reportBlockCourses'),
     enrollments: document.getElementById('reportBlockEnrollments'),
+    marks: document.getElementById('reportBlockMarks'),
     staff: document.getElementById('reportBlockStaff'),
     sections: document.getElementById('reportBlockSections')
   };
@@ -2104,6 +2154,13 @@ function setupReportTabs() {
 
       if (target === 'all') {
         Object.values(blocks).forEach(b => { if (b) b.style.display = 'block'; });
+      } else if (target === 'enrollments') {
+        Object.keys(blocks).forEach(key => {
+          if (blocks[key]) {
+            blocks[key].style.display = (key === 'enrollments' || key === 'marks') ? 'block' : 'none';
+          }
+        });
+        blocks.enrollments?.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       } else {
         Object.keys(blocks).forEach(key => {
           if (blocks[key]) {

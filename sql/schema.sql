@@ -66,6 +66,7 @@ CREATE TABLE Enrollment (
     enrollment_id INT PRIMARY KEY,
     student_id INT NOT NULL,
     course_code VARCHAR(10) NOT NULL,
+    marks INT NULL CHECK (marks >= 0 AND marks <= 100),
     grade VARCHAR(2),
     enroll_date DATE,
     CONSTRAINT fk_enroll_student

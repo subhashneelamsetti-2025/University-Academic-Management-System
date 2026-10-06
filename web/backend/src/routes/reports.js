@@ -101,6 +101,16 @@ router.get('/overview', async (req, res) => {
         grade ASC
     `);
 
+    // 6b. Marks Statistics
+    const [marksStatistics] = await pool.query(`
+      SELECT 
+        COUNT(marks) AS evaluated_count,
+        COALESCE(ROUND(AVG(marks), 1), NULL) AS avg_marks,
+        MIN(marks) AS min_marks,
+        MAX(marks) AS max_marks
+      FROM Enrollment
+    `);
+
     // 7. Staff Statistics by Department and Role
     const [staffByDept] = await pool.query(`
       SELECT 
@@ -158,6 +168,7 @@ router.get('/overview', async (req, res) => {
       enrollmentsByCourse,
       enrollmentsByDepartment: enrollmentsByDept,
       gradeDistribution,
+      marksStatistics: marksStatistics[0] || {},
       staffByDepartment: staffByDept,
       staffByRole,
       sectionsByTerm,
@@ -338,12 +349,22 @@ router.get('/enrollment-statistics', async (req, res) => {
         grade ASC
     `);
 
+    const [marksStatsResult] = await pool.query(`
+      SELECT 
+        COUNT(marks) AS evaluated_count,
+        COALESCE(ROUND(AVG(marks), 1), NULL) AS avg_marks,
+        MIN(marks) AS min_marks,
+        MAX(marks) AS max_marks
+      FROM Enrollment
+    `);
+
     res.status(200).json({
       status: 'ok',
       totalEnrollments,
       byCourse,
       byDepartment: byDept,
-      gradeDistribution: gradeDist
+      gradeDistribution: gradeDist,
+      marksStatistics: marksStatsResult[0] || {}
     });
   } catch (error) {
     console.error('Error in enrollment-statistics report:', error);

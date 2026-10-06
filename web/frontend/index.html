@@ -646,14 +646,15 @@
                 <th style="width: 110px;">Enrollment ID</th>
                 <th>Student</th>
                 <th>Course</th>
-                <th style="width: 110px;">Grade</th>
-                <th style="width: 130px;">Enroll Date</th>
+                <th style="width: 90px;">Marks</th>
+                <th style="width: 100px;">Grade</th>
+                <th style="width: 120px;">Enroll Date</th>
                 <th style="width: 130px; text-align: right;">Actions</th>
               </tr>
             </thead>
             <tbody id="enrollmentsTableBody">
               <tr>
-                <td colspan="6" class="text-center text-muted" style="padding: 3rem;">
+                <td colspan="7" class="text-center text-muted" style="padding: 3rem;">
                   <div class="loading-spinner"></div>
                   <p style="margin-top: 1rem;">Loading enrollments from MySQL...</p>
                 </td>
@@ -921,6 +922,56 @@
                 <!-- Injected via JS -->
               </tbody>
             </table>
+          </div>
+        </div>
+
+        <!-- Section: Marks Evaluation Statistics -->
+        <div class="report-table-block glass-card" id="reportBlockMarks">
+          <div class="report-block-header">
+            <div class="report-block-title">
+              <span class="block-icon">🎯</span>
+              <div>
+                <h3>Marks Evaluation Statistics</h3>
+                <p>Aggregate evaluation benchmarks across course enrollments (0–100 scale)</p>
+              </div>
+            </div>
+          </div>
+          <div class="marks-stats-grid">
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Evaluated Marks</span>
+                <span class="stat-icon-wrapper" style="background: rgba(99, 102, 241, 0.15); color: #818cf8;">📝</span>
+              </div>
+              <div class="stat-value" id="reportStatEvaluatedMarks">--</div>
+              <div class="stat-footer"><span class="stat-trend neutral">Scored Enrollments</span></div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Average Marks</span>
+                <span class="stat-icon-wrapper" style="background: rgba(56, 189, 248, 0.15); color: #38bdf8;">📊</span>
+              </div>
+              <div class="stat-value" id="reportStatAvgMarks">--</div>
+              <div class="stat-footer"><span class="stat-trend positive">Mean Score</span></div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Minimum Marks</span>
+                <span class="stat-icon-wrapper" style="background: rgba(245, 158, 11, 0.15); color: #f59e0b;">📉</span>
+              </div>
+              <div class="stat-value" id="reportStatMinMarks">--</div>
+              <div class="stat-footer"><span class="stat-trend neutral">Lowest Recorded</span></div>
+            </div>
+
+            <div class="stat-card">
+              <div class="stat-card-header">
+                <span class="stat-label">Maximum Marks</span>
+                <span class="stat-icon-wrapper" style="background: rgba(16, 185, 129, 0.15); color: #10b981;">🏆</span>
+              </div>
+              <div class="stat-value" id="reportStatMaxMarks">--</div>
+              <div class="stat-footer"><span class="stat-trend positive">Highest Recorded</span></div>
+            </div>
           </div>
         </div>
 
@@ -1343,11 +1394,19 @@
             </select>
           </div>
 
-          <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+          <div class="form-row" style="display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem;">
+            <div class="form-group">
+              <label for="inputEnrollmentMarks" class="form-label">
+                Marks (0–100)
+                <span class="form-hint">Optional</span>
+              </label>
+              <input type="number" id="inputEnrollmentMarks" class="form-control" placeholder="e.g. 85" min="0" max="100" step="1">
+            </div>
+
             <div class="form-group">
               <label for="inputEnrollmentGrade" class="form-label">
                 Academic Grade
-                <span class="form-hint">e.g. A, B+, NULL</span>
+                <span class="form-hint">e.g. A, B+</span>
               </label>
               <input type="text" id="inputEnrollmentGrade" class="form-control" placeholder="e.g. A" maxlength="2" style="text-transform: uppercase;">
             </div>
